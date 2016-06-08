@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<title>Space Shooter</title>
+		<style>
+			canvas {
+				border: 1px solid black;
+			}
+			body{
+				width: 500px;
+				margin: auto;
+			}
+		</style>
+		<script src="Sprite.js"></script>
+		<script src="Enemy.js"></script>
+		<script src="Shot.js"></script>
+	</head>
+	<body>
+		<h1>Space Shooter</h1>
+
+		<canvas width="498" height="300">
+			Seu navegador não tem suporte ao canvas! Atualize seu navegador.
+		</canvas>
+
+		<script>
+			var tela = document.getElementsByTagName("canvas")[0];
+			var ctx = tela.getContext("2d");
+
+			var fps = 50;
+			var dt = 1/fps;
+
+			var pc = new Sprite();
+			var tiro = new Shot();
+			var inimigos = [];
+
+			var bg = new Image();
+			bg.src = "img/space.jpg"; //retirada de http://www.axsysnav.eu/space/
+
+			function criaInimigo(y){
+				var inimigo = new Enemy();
+				inimigo.raio = 16;
+				inimigo.x = Math.floor((Math.random() * tela.width) + 1);
+				inimigo.y = y;
+				inimigo.ay = 50;
+				return inimigo;
+			}
+			for (var i = 0; i < 10; i++) {
+				inimigos.push(criaInimigo(-50*i));
+			}
+
+			function removeVida() {
+				pc.vidas -= 1;
+
+				//Volta com a nave pro local inicial
+				pc.x = tela.width/2;
+  				pc.y = tela.height;
+  				pc.vx = 0;
+  				pc.vy = 0;
+
+  				if(pc.vidas > 0)
+  					pc.energy = 100;
+
+
+  				//Remove todas os inimigos da tela
+  				for (var i in inimigos)
+					inimigos[i].y = 1200;
+
+				//Remove o Tiro
+				tiro.y = -1200;
+			}
+
+			function passo(){
+
+				if(pc.vidas == 0) {
+	 				ctx.clearRect(0,0, tela.width, tela.height);
+	 				ctx.drawImage(bg, 0, 0);
+					desenhaPlacar();
+
+					ctx.font = "70px Arial";
+					ctx.fillStyle = "rgb(255, 255, 255)";
+	            	ctx.fillText('Game Over!', 60, 160);
+
+					return;
+				}
+
+				pc.mover();
+				for (var i in inimigos) {
+					inimigos[i].mover();
+				}
+				tiro.mover();
+
+				pc.restricoes();
+				for (var i in inimigos) {
+					inimigos[i].restricoes();
+				}
+				tiro.restricoes();
+
+				//Limpar a tela
+	 			ctx.clearRect(0,0, tela.width, tela.height);
+	 			ctx.drawImage(bg, 0, 0);
+
+				pc.desenhar();
+				for (var i in inimigos) {
+					inimigos[i].desenhar();
+				}
+				tiro.desenhar();
+
+				for (var i in inimigos) {
+					if(pc.colidiuComCircular(inimigos[i])){
+						pc.energy -= 10;
+
+						if(pc.energy <= 0){ 
+							removeVida();
+							return;
+						}
+
+						inimigos[i].y = 1200;
+					}
+					if(tiro.colidiuComCircular(inimigos[i])){
+						inimigos[i].y = 1200;
+						tiro.y = -1200;
+						pc.score += 5;
+					}
+				}
+
+				desenhaPlacar();
+			}
+
+			function teclaPressionada(e){
+				switch(e.keyCode){
+					case 32: //space bar
+						if(tiro.y < -10){
+							tiro.x = pc.x;
+							tiro.y = pc.y;
+							tiro.vy = -200;
+						}
+					break;
+					case 37: //left
+						pc.ax = -300;
+					break;
+					case 39: //right
+						pc.ax = 300;
+					break;
+					case 38: //up
+						pc.ay = -300;
+					break;
+					case 40: //down
+						pc.ay = 300;
+					break;
+				}
+
+			}
+
+			function teclaSolta(e){
+				switch(e.keyCode){
+					case 32:
+						break;
+					case 37:
+					case 39:
+						pc.ax = 0;
+						break;
+					case 38:
+					case 40:
+						pc.ay = 0;
+					break;
+				}
+			}
+			
+			function desenhaPlacar(){
+				ctx.font = "15px Arial";
+            	ctx.fillStyle = "rgb(255, 255, 255)";
+
+            	ctx.fillText('Energy:', 25, 15);
+				ctx.fillText('Life: ' + pc.vidas, 350, 15);
+				ctx.fillText('Score: ' + Math.floor(pc.score), 400, 15);
+
+				var size = pc.energy * 2.5;
+				var color = (size * 100)/250;
+
+				ctx.fillStyle = "hsl("+color+", 75%, 59%)";
+            	ctx.fillRect(80,4, size ,12);
+			}
+
+			setInterval(passo, 1000/fps);
+			addEventListener("keydown", teclaPressionada);
+			addEventListener("keyup", teclaSolta);
+		</script>	
+	</body>
+</html>
